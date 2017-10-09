@@ -1,0 +1,290 @@
+<html>
+<head><title>AirLog</title>
+
+
+<script src="js/angular.min.js"></script>
+<link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="css/jumbotron-narrow.css" rel="stylesheet">
+<link href="css/main.css" rel="stylesheet">
+<base href="/">
+</head>
+<body  ng-app="mainApp">
+	<div ng-controller="homeCtrl">
+	<!-- Model to give Feedback  -->
+	<div id="feedbackModal" class="modal fade" tabindex="-1" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+					<h4 class="modal-title">Your Feedback is valuble to us..</h4>
+				</div>
+				<div class="modal-body">
+					<div ng-hide="isFeedbackPosted">
+						<div class="row" align="center">
+							<div class="col-sm-2"></div>
+							<div class="col-sm-8"><input class="square-border input input-group form-control" type="text" ng-model="feedbackName" placeholder="Name/GUID"></div>
+							<div class="col-sm-2"></div>
+						</div><br/>
+						<div class="row" align="center">
+							<div class="col-sm-2"></div>
+							<div class="col-sm-8"><textarea rows="6" class="square-border input input-group form-control" ng-model="feedbackText" placeholder="Feedback or Suggesion or Questions" ></textarea></div>
+							<div class="col-sm-2"></div>
+						</div><br/>
+						<div class="row" align="center">
+							<div class="col-sm-2"></div>
+							<div class="col-sm-8"><input class="square-border input input-group form-control" type="text" ng-model="feedbackRating" placeholder="Rating on a scale of 0 to 10"></div>
+							<div class="col-sm-2"></div>
+						</div><br/>
+						<div class="row" align="center">
+							<h5 ng-show="feedbackErrorMsg" class="alert alert-warning"><strong>{{feedbackErrorMsg}}</strong></h5>
+						</div>
+					</div>
+					<div ng-show="isFeedbackPosted" align="center">
+						<h2>Thankyou!...</h2>
+					</div>
+				</div>
+				<div class="modal-footer" ng-hide="isFeedbackPosted">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+					<button type="button" class="btn btn-primary" ng-click="postFeedback()">Submit</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- Model to easy renew when seesion in sidebar is clicked  -->
+	<div id="trackAlertModal" class="modal fade" tabindex="-1" role="dialog" ng-hide="selectedPage">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+					<h4 class="modal-title">Session is not tracking now..</h4>
+				</div>
+				<div class="modal-body">
+					<p>Logs last fetched on <strong>{{selectedSession.endTime | date:'medium'}}</strong></p>
+					<p style="word-wrap: break-word;">Path : <strong>{{selectedSession.path}}</strong></p>
+					<p>Do you want to continue  or track logs (you can edit the session parameters)? ...</p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" data-dismiss="modal">Track Logs</button>
+					<a class="btn btn-primary" href="http://10.176.125.5:5601/#/discover/{{guid}}">Continue to Session</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- Modal to notify Invalid Path -->
+	<div id="smallModal" class="modal fade" tabindex="-1" role="dialog">
+		<div class="modal-dialog modal-lg">
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+					<h4 class="modal-title">Invalid Path !</h4>
+				</div>
+				<div class="modal-body">
+					<p>Please check the path provided and the permissions of the log file...</p>
+					<p>    - Check if the log files have <code><strong>755 permission</strong>></code></p>
+					<p>    - Path refers to path of Diagnostic Log <br/>
+					<code>Eg. /net/10.176.124.249/scratch/vikaggar/fintech_domains/prj_Fin_1/servers/<strong>AdminServer/logs</strong></code> </p>
+				</div>
+			</div>
+		</div>
+	</div>
+	
+	<div class="container" >
+		<div class="header">
+			<ul class="nav nav-pills pull-right fixed">
+			  	<li class="{{menuBarButton[1]}}" ng-click="togglePage(0)"><a>Home</a></li>
+				<li class="{{menuBarButton[1]}}" ng-click="togglePage(1)"><a>About</a></li>
+				<li class="{{menuBarButton[1]}}" ng-click="togglePage(2)"><a>Bored ?</a></li>
+			</ul>
+			<a href="/home" target="_self" ><img height="40" src="images/AirLog-Logo.png"></a>
+			
+		  </div>
+		<!--			 Code Below - Angular Routing for Templating		-->
+		<div>
+		  <div ng-hide="selectedPage">
+		  <div class="row" ng-hide="hasUserRequested">
+		    <div class="col-sm-2"></div>
+		    <div class="col-sm-7">
+				<div class="bs-callout bs-callout-info get-shadows" ng-hide="hasUserRequested">
+					<br/>
+					<div class="row">
+						<div class="col-sm-1"></div>
+						<div class="col-sm-3">
+							<h5>GUID </h5>
+						</div>
+						<div class="col-sm-7">
+							<input type="text" autocomplete="on" class="input input-group form-control square-border"  ng-model="guid" placeholder="Eg. RANJSHAN (no space allowed)"/>
+						</div> 
+						<div class="col-sm-1"></div>
+					</div>
+					<br/>
+					<div class="row">
+						<div class="col-sm-1"></div>
+						<div class="col-sm-3">
+							<h5>Log Folder Path </h5>
+						</div>
+						<div class="col-sm-7">
+							<textarea rows="6" type="text" class="input input-group form-control square-border" ng-model="path" placeholder="Eg. /net/../<ServerName>/logs"></textarea>
+						</div> 
+						<div class="col-sm-1"></div>
+					</div>
+					<br/>
+					<div class="row">
+						<div class="col-sm-1"></div>
+						<div class="col-sm-3">
+							Duration (Minutes) 
+						</div>
+						<div class="col-sm-7">
+							<input type="text" class="input input-group form-control square-border" ng-model="time" placeholder="Max of 180 mins"/>
+						</div> 
+						<div class="col-sm-1"></div>
+					</div>
+					<br/>
+					<div class="row" ng-show="trackInputErrorMsg.list.length">
+						<div class="col-sm-2"></div>
+						<div class="col-sm-8 alert alert-dismissible alert-warning" align="center">
+							<button type="button" class="close" ng-click="hideAlert()" aria-label="Close">
+  <span aria-hidden="true">&times;</span>
+</button>
+							<div ng-repeat="error in trackInputErrorMsg.list">
+							<strong>{{error}}</strong>
+							</div>
+						</div>
+						<div class="col-sm-2"></div>
+					</div>
+					<div class="row">
+						<div class="col-sm-12">
+						<button class="btn btn-lg square-style" ng-click="trackAction()" style="width:100%;">Start Tracking !</button>
+						</div>
+
+					</div>
+				</div><br/><br/>
+				<div class="alert alert-warning" role="alert">
+					<p>Pls give <strong>755 permission</strong> to Diagnostic and access logs</p>
+				</div>
+				<div class="alert alert-warning" role="alert">
+					Path refers to <strong>path of Diagnostic Log</strong><br/>
+					Eg. /net/10.176.124.249/scratch/vikaggar/fintech_domains/prj_Fin_1/servers/AdminServer/logs
+				</div>
+		    </div>
+		    <div class="col-sm-1"></div>
+			 <!--  Column showing current list -->
+			 <!--   style="height:300px;overflow-y:scroll;" -->
+			<div class="col-sm-2 left-line" align="right" style="height:80%">
+				<h5><strong>User Sessions</strong></h5>
+				<h6 style="color:#F00;display:inline;">Active</h6>&nbsp;&nbsp;&nbsp;<h6 style="color:#00F;display:inline;">Inactive</h6>
+				<input class="input input-group square-border form-control" ng-model="query" type="text" placeholder="Filter by">
+				<div ng-repeat="session in currentSessions | filter : query" class="" style="width:100%;" align="right">
+					<!-- <a href="http://10.176.125.5:5601/#/discover/{{session.user}}" target="_self"> -->
+					<button class="btn square-border" style="height:28px;text-align:right;width:100%;background-color:#FFF;color:{{(session.logService==true) ? '#F00' : '#00F'}};" ng-click="selectSession(session)">{{session.user}}</button>
+					
+					<!-- </a>  -->
+					
+				</div>
+			</div>
+		  </div>
+		
+	
+		  <!-- The part which is shown once the click is made -->
+		  <div class="bs-callout bs-callout-info get-shadows" ng-show="hasUserRequested" >
+			<br/>
+			<br/>
+			<div class="row">
+				<div class="col-sm-12" style="vertical-align:center; " align="center">
+					<br/> 
+					<br/>
+					{{currentStatus}}  	
+					<br/>
+					<br/>
+					<div class="progress">
+						<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{progressValue}}" aria-valuemin="0" aria-valuemax="100" style="width: 45%">
+							<span class="sr-only"></span>
+						</div>
+					</div>
+					<br/>
+				</div>
+			</div>
+		  </div>
+
+		</div>
+		</div>
+		
+		<!--  About part  -->
+		<!-- Angular routing is not done, since its static content at about & simple page -->
+		<div ng-if="selectedPage==1" class="row">
+			<div  class="container" >
+				<h3> Why AirLog ?</h3><br/>
+				<div class="row">
+					<div class="col-sm-1"></div>
+					<div class="col-sm-3" align="center">
+						<br/>
+						<img style="height:105px;" src="images/cloud.png">
+						<br/><br/>
+						<strong>Cloud Based Centralized Log Management</strong>
+						<p>A single location to keep track of your various logs and anlyze them.</p>
+					</div>
+					<div class="col-sm-1"></div>
+					<div class="col-sm-3" align="center">
+						<img style="height:150px;" src="images/search.png"><br/>
+						<strong>Identify & Solve Issues</strong>
+						<p>With the help of a powerful search easily find the exceptions. Also the various filters comes in handy..No more manual parsing.. </p>
+					</div>
+					<div class="col-sm-1"></div>
+					<div class="col-sm-3" align="center" style="height:70px;">
+						<img style="height:150px;" src="images/collaborate.png"><br/>
+						<strong>Collaborate & Customize</strong>
+						<p>Share the log very easily to others. Also customize the profile to fit you the most..  </p>
+					</div>
+				</div><hr/>
+				<img class="col-sm-12" src="images/comparison.png">
+			</div>
+		</div>
+		
+		<!-- Bored? page -->
+		<div ng-if="selectedPage==2" class="row">
+			<div  class="row" >
+				<div class="col-md-6">
+					<h3> Some Stats</h3><br/>
+					<h4><strong>Browser Statistics and Trends</strong></h4>
+					<p>From the statistics below (collected from AirLog' log-files since Feb 2015), you can read the long term trends of browser usage.</p>
+					<p>P.S. Visualisation and Statistics from Airlog using AirLog :P</p>
+					<iframe src="http://10.176.125.5:5601/#/visualize/create?embed&type=pie&savedSearchId=AirLog&_g=(time:(from:'2012-12-31T18:30:00.000Z',mode:absolute,to:'2016-02-04T11:28:40.245Z'))&_a=(filters:!(),query:(query_string:(query:'*')),vis:(aggs:!((id:1,params:(),schema:metric,type:count),(id:2,params:(filters:!((input:(query:(query_string:(query:'*Firefox')))),(input:(query:(query_string:(query:'*MSIE')))),(input:(query:(query_string:(query:'*Chrome')))))),schema:segment,type:filters)),listeners:(),params:(addLegend:!t,addTooltip:!t,isDonut:!f,shareYAxis:!t),type:pie))" height="300" width="400" scrolling="no" marginwidth="0" marginheight="0" frameborder="0" vspace="0" hspace="0" ></iframe>
+
+				</div>
+				<div class="col-md-6">
+					<h3>Random Comic</h3>
+					<img src="{{rand()}}" >
+				</div>
+			</div>
+		</div>
+		
+		</div>		<!-- end of Container -->
+
+		
+		<!--			 Code Above 			-->
+			<br/>
+		<div class="footer container">
+			<div class="row">
+				<div class="col-md-3">
+					<div >
+						<p >© PPM Tech ,ORACLE 2015</p>
+					</div>
+				</div>
+				<div class="col-md-9" align="right">
+					<div>
+						<i>We are always happy to improve..<strong><a style="text-decoration: none;" href="" ng-click="giveFeedback()">Feedback</a></strong></i>
+			  </div>
+				</div>
+			</div>
+		</div>
+
+	</div>
+
+	<!-- Loading scripts at the end -->
+	<!-- <script src="js/angular.min.js"></script> -->
+	<script src="js/angular-route.js"></script>
+	<script src="app.js"></script>
+	<script src="js/jquery.min.js"></script>
+	<script src="bootstrap/js/bootstrap.min.js"></script>
+	<!-- End of Scripts -->
+</body>
+</html>

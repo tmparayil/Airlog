@@ -1,0 +1,17 @@
+{
+  "name": "CLOG",
+  "version": "0.1.0",
+  "description": "Cloud based logging",
+  "main": "server.js",
+  "author": "Ranjith Kumar",
+  "dependencies": {
+    "body-parser": "latest",
+    "cookie-parser": "*",
+    "express": "*",
+    "express-session": "latest",
+    "glob": "*",
+    "mongoose": "*",
+    "morgan": "^1.5.1",
+    "winston": "^0.8.3"
+  }
+}
